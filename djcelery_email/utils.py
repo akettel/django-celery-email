@@ -31,9 +31,13 @@ def email_to_dict(message):
                     'to': message.to,
                     'bcc': message.bcc,
                     # ignore connection
-                    'attachments': message.attachments,
                     'headers': message.extra_headers,
                     'cc': message.cc}
+
+    attachments = []
+    for attachment in message.attachments:
+        attachments.append((attachment[0], attachment[1].encode('base64'), attachment[2], ))
+    message_dict['attachments'] = attachments
 
     # Django 1.8 support
     # https://docs.djangoproject.com/en/1.8/topics/email/#django.core.mail.EmailMessage
@@ -72,6 +76,12 @@ def dict_to_email(messagedict):
         del messagedict["mixed_subtype"]
     else:
         mixed_subtype = None
+    if isinstance(messagedict, dict) and "attachments" in messagedict:
+        attachments = []
+        for attachment in messagedict['attachments']:
+            attachments.append((attachment[0], attachment[1].decode('base64'), attachment[2], ))
+        del messagedict['attachments']
+        messagedict['attachments'] = attachments
     if hasattr(messagedict, 'from_email'):
         ret = messagedict
     elif 'alternatives' in messagedict:
