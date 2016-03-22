@@ -319,6 +319,59 @@ class IntegrationTests(TestCase):
         self.assertEqual(mail.outbox[0].subject, 'test')
         self.assertEqual(mail.outbox[0].content_subtype, "html")
 
+    def test_sending_email_with_file_attachment(self):
+        msg = mail.EmailMessage('test', 'Testing <b>with Celery! w00t!!</b>', 'from@example.com',
+                                ['to@example.com'])
+        msg.content_subtype = "html"
+        msg.attach_file("tests/files/Test.pdf")
+        [result] = msg.send()
+
+        test_pdf = open("tests/files/Test.pdf", 'r')
+        self.assertEqual(result.get(), 1)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].subject, 'test')
+        self.assertEqual(mail.outbox[0].content_subtype, "html")
+        self.assertEqual(len(mail.outbox[0].attachments), 1)
+        self.assertEqual(mail.outbox[0].attachments[0][0], "Test.pdf")
+        self.assertEqual(mail.outbox[0].attachments[0][1], test_pdf.read())
+
+    def test_sending_email_with_multiple_file_attachment(self):
+        msg = mail.EmailMessage('test', 'Testing <b>with Celery! w00t!!</b>', 'from@example.com',
+                                ['to@example.com'])
+        msg.content_subtype = "html"
+        msg.attach_file("tests/files/Test.pdf")
+        msg.attach_file("tests/files/Test.png")
+        [result] = msg.send()
+
+        test_pdf = open("tests/files/Test.pdf", 'r')
+        test_png = open("tests/files/Test.png", 'r')
+        self.assertEqual(result.get(), 1)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].subject, 'test')
+        self.assertEqual(mail.outbox[0].content_subtype, "html")
+        self.assertEqual(len(mail.outbox[0].attachments), 2)
+        self.assertEqual(mail.outbox[0].attachments[0][0], "Test.pdf")
+        self.assertEqual(mail.outbox[0].attachments[0][1], test_pdf.read())
+        self.assertEqual(mail.outbox[0].attachments[1][0], "Test.png")
+        self.assertEqual(mail.outbox[0].attachments[1][1], test_png.read())
+
+    def test_sending_email_with_file_data_attachment(self):
+        msg = mail.EmailMessage('test', 'Testing <b>with Celery! w00t!!</b>', 'from@example.com',
+                                ['to@example.com'])
+        msg.content_subtype = "html"
+        test_pdf = open("tests/files/Test.pdf", 'r')
+        msg.attach("Test.pdf", test_pdf.read())
+        [result] = msg.send()
+
+        test_pdf = open("tests/files/Test.pdf", 'r')
+        self.assertEqual(result.get(), 1)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].subject, 'test')
+        self.assertEqual(mail.outbox[0].content_subtype, "html")
+        self.assertEqual(len(mail.outbox[0].attachments), 1)
+        self.assertEqual(mail.outbox[0].attachments[0][0], "Test.pdf")
+        self.assertEqual(mail.outbox[0].attachments[0][1], test_pdf.read())
+
     def test_sending_mass_email(self):
         emails = (
             ('mass 1', 'mass message 1', 'from@example.com', ['to@example.com']),
